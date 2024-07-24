@@ -1,9 +1,10 @@
 package com.swshenyun.controller;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.swshenyun.common.BaseResponse;
+import com.swshenyun.common.ErrorCode;
 import com.swshenyun.constant.JwtClaimsConstant;
 import com.swshenyun.context.BaseContext;
+import com.swshenyun.exception.BaseException;
 import com.swshenyun.pojo.dto.UserDTO;
 import com.swshenyun.pojo.dto.UserLoginDTO;
 import com.swshenyun.pojo.dto.UserRegisterDTO;
@@ -13,8 +14,6 @@ import com.swshenyun.properties.JwtProperties;
 import com.swshenyun.service.UserService;
 import com.swshenyun.utils.JwtUtils;
 import com.swshenyun.utils.ResultUtils;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +21,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/user")
-@Api(tags = "用户相关接口")
 public class UserController {
 
     @Autowired
@@ -41,7 +40,6 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
-    @ApiOperation("用户登录")
     public BaseResponse<UserLoginVO> login(@RequestBody @Validated UserLoginDTO userLoginDTO) {
         //1.登录service
         User user = userService.login(userLoginDTO);
@@ -72,8 +70,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
-    @ApiOperation("用户注册")
-    public BaseResponse<Long> userRegister(@RequestBody @Validated UserRegisterDTO userRegisterDTO) {
+    public BaseResponse<Long> register(@RequestBody @Validated UserRegisterDTO userRegisterDTO) {
 
         long result = userService.register(userRegisterDTO);
         return ResultUtils.success(result);
@@ -84,7 +81,6 @@ public class UserController {
      * @return
      */
     @GetMapping("/current")
-    @ApiOperation("获取当前用户")
     public BaseResponse<User> getCurrentUser() {
         log.info("获取当前用户数据");
         long userId = BaseContext.getCurrentId();
@@ -99,7 +95,6 @@ public class UserController {
      * @return
      */
     @PostMapping("/logout")
-    @ApiOperation("员工登出")
     public BaseResponse logout() { return ResultUtils.success(); }
 
     /**
@@ -109,7 +104,6 @@ public class UserController {
      * @return
      */
     @PostMapping("/status/{status}")
-    @ApiOperation("启用禁用员工账户")
     public BaseResponse startOrStop(@PathVariable Integer status,Long id) {
         log.info("启用禁用员工账户：{}，{}", status, id);
         userService.startOrStop(status,id);
@@ -121,17 +115,32 @@ public class UserController {
      * @return
      */
     @PutMapping
-    @ApiOperation("修改员工信息")
     public BaseResponse update(@RequestBody UserDTO userDTO) {
         log.info("编辑员工信息：{}", userDTO);
         User user = new User();
         BeanUtils.copyProperties(userDTO,user);
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, user.getId());
-        userService.update(wrapper);
+        //验证修改权限
+        Long currentId = BaseContext.getCurrentId();
+        if (!currentId.equals(userDTO.getId())) {
+            throw new BaseException(ErrorCode.NO_AUTH_ERROR);
+        }
+        userService.updateById(user);
         return ResultUtils.success();
     }
 
-    //管理员
+    /**
+     * 按标签查询用户
+     * @param tagNameList
+     * @return
+     */
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUsersByTags(@RequestParam("tagNameList") List<String> tagNameList) {
+        log.info("按标签查询员工：{}", tagNameList);
+        if (tagNameList.isEmpty()) {
+            throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
+        }
+        List<User> userList = userService.searchUsersByTags(tagNameList);
+        return ResultUtils.success(userList);
+    }
 
 }

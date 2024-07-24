@@ -5,6 +5,8 @@ import com.swshenyun.pojo.dto.UserLoginDTO;
 import com.swshenyun.pojo.dto.UserRegisterDTO;
 import com.swshenyun.pojo.entity.User;
 
+import java.util.List;
+
 /**
 * @author 神殒魔灭
 * @description 针对表【user(用户表)】的数据库操作Service
@@ -19,4 +21,6 @@ public interface UserService extends IService<User> {
     User getSafeUser(User user);
 
     void startOrStop(Integer status, Long id);
+
+    List<User> searchUsersByTags(List<String> tagNameList);
 }

@@ -96,4 +96,9 @@ public class User implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 标签
+     */
+    private String tags;
 }

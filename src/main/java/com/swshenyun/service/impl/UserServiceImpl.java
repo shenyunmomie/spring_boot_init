@@ -15,6 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
 * @author 神殒魔灭
 * @description 针对表【user(用户表)】的数据库操作Service实现
@@ -79,6 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safeUser.setStatus(user.getStatus());
         safeUser.setCreateTime(user.getCreateTime());
         safeUser.setUpdateTime(user.getUpdateTime());
+        safeUser.setTags(user.getTags());
         return safeUser;
     }
 
@@ -137,7 +141,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
     }
 
-
+    /**
+     * 按标签查询用户
+     * @param tagNameList
+     * @return
+     */
+    public List<User> searchUsersByTags(List<String> tagNameList) {
+        //1.校验
+        if (tagNameList.isEmpty()) {
+            throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
+        }
+        //2.组合wrapper
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        tagNameList.forEach(tagName -> {
+            wrapper.like(User::getTags, tagName);
+        });
+        //3.查询
+        List<User> userList = this.list(wrapper);
+        //4.脱敏
+        return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
+    }
 
 }
 

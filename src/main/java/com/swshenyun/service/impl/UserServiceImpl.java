@@ -2,13 +2,13 @@ package com.swshenyun.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.swshenyun.common.ErrorCode;
 import com.swshenyun.constant.StatusConstant;
 import com.swshenyun.exception.BaseException;
 import com.swshenyun.mapper.UserMapper;
-import com.swshenyun.pojo.dto.UserLoginDTO;
-import com.swshenyun.pojo.dto.UserRegisterDTO;
+import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
 import com.swshenyun.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +32,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 密码盐值
      */
     private static final String SALT = "symm";
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     /**
      * 用户登录
@@ -85,7 +90,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safeUser.setTags(user.getTags());
         return safeUser;
     }
-
 
     /**
      * 用户注册
@@ -143,25 +147,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 按标签查询用户
-     * @param tagNameList
+     * @param
      * @return
      */
-    public List<User> searchUsersByTags(List<String> tagNameList) {
+    public Page<User> searchUsersByTags(UserByTagsPageDTO userByTagsPageDTO) {
         //1.校验
-        if (tagNameList.isEmpty()) {
+        if (userByTagsPageDTO == null) {
             throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
         }
+        List<String> tagNameList = userByTagsPageDTO.getTagNameList();
         //2.组合wrapper
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         tagNameList.forEach(tagName -> {
             wrapper.like(User::getTags, tagName);
         });
         //3.查询
-        List<User> userList = this.list(wrapper);
+        Page<User> page = this.page(new Page<>(userByTagsPageDTO.getPage(), userByTagsPageDTO.getPageSize()), wrapper);
+
         //4.脱敏
-        return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
+        return page.setRecords(page.getRecords().stream().map(this::getSafeUser).collect(Collectors.toList()));
     }
 
+    /**
+     * username条件查询，分页
+     */
+    public Page<User> searchUsersByName(UserByNamePageDTO userByNamePageDTO) {
+        String username = userByNamePageDTO.getUsername();
+        int page = userByNamePageDTO.getPage();
+        int pageSize = userByNamePageDTO.getPageSize();
+        //1.校验
+        if (username == null || username.isEmpty()) {
+            throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
+        }
+        //2.组合wrapper
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(User::getUsername, username);
+        //3.查询
+        Page<User> userPage = this.page(new Page<>(page,pageSize), wrapper);
+
+        //4.返回
+        return userPage.setRecords(userPage.getRecords().stream().map(this::getSafeUser).collect(Collectors.toList()));
+    }
+
+
+    public Page<User> getRecommendUsers(PageDTO pageDTO) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        return this.page(new Page<>(pageDTO.getPage(), pageDTO.getPageSize()), wrapper);
+    }
 }
 
 

@@ -1,8 +1,8 @@
 package com.swshenyun.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.swshenyun.pojo.dto.UserLoginDTO;
-import com.swshenyun.pojo.dto.UserRegisterDTO;
+import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
 
 import java.util.List;
@@ -22,5 +22,9 @@ public interface UserService extends IService<User> {
 
     void startOrStop(Integer status, Long id);
 
-    List<User> searchUsersByTags(List<String> tagNameList);
+    Page<User> searchUsersByTags(UserByTagsPageDTO userByTagsPageDTO);
+
+    Page<User> searchUsersByName(UserByNamePageDTO userByNamePageDTO);
+
+    Page<User> getRecommendUsers(PageDTO pageDTO);
 }

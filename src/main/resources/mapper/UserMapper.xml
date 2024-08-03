@@ -29,4 +29,5 @@
         profile,status,create_time,
         update_time,is_delete,tags
     </sql>
+
 </mapper>

@@ -1,28 +1,32 @@
 package com.swshenyun.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.swshenyun.common.BaseResponse;
 import com.swshenyun.common.ErrorCode;
 import com.swshenyun.constant.JwtClaimsConstant;
 import com.swshenyun.context.BaseContext;
 import com.swshenyun.exception.BaseException;
-import com.swshenyun.pojo.dto.UserDTO;
-import com.swshenyun.pojo.dto.UserLoginDTO;
-import com.swshenyun.pojo.dto.UserRegisterDTO;
+import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
 import com.swshenyun.pojo.vo.UserLoginVO;
 import com.swshenyun.properties.JwtProperties;
 import com.swshenyun.service.UserService;
 import com.swshenyun.utils.JwtUtils;
 import com.swshenyun.utils.ResultUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -34,6 +38,9 @@ public class UserController {
 
     @Autowired
     private JwtProperties jwtProperties;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 登录
@@ -130,17 +137,60 @@ public class UserController {
 
     /**
      * 按标签查询用户
-     * @param tagNameList
+     * @param
      * @return
      */
     @GetMapping("/search/tags")
-    public BaseResponse<List<User>> searchUsersByTags(@RequestParam("tagNameList") List<String> tagNameList) {
-        log.info("按标签查询员工：{}", tagNameList);
-        if (tagNameList.isEmpty()) {
+    @Operation(summary = "按标签查询用户")
+    public BaseResponse<Page<User>> searchUsersByTags(@Parameter(in = ParameterIn.QUERY) UserByTagsPageDTO userByTagsPageDTO) {
+        if (userByTagsPageDTO == null || userByTagsPageDTO.getTagNameList() == null) {
             throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
         }
-        List<User> userList = userService.searchUsersByTags(tagNameList);
-        return ResultUtils.success(userList);
+        log.info("按标签查询员工：{}", userByTagsPageDTO.getTagNameList());
+        Page<User> userPage = userService.searchUsersByTags(userByTagsPageDTO);
+        return ResultUtils.success(userPage);
+    }
+
+    /**
+     * 按照用户名查询用户
+     */
+    @GetMapping
+    public BaseResponse<Page<User>> searchUsersByName(UserByNamePageDTO userByNamePageDTO) {
+        if (userByNamePageDTO == null) {
+            throw new BaseException(ErrorCode.PARAMS_NULL_ERROR);
+        }
+        log.info("按照用户名查询用户：{}", userByNamePageDTO.getUsername());
+        Page<User> userPage = userService.searchUsersByName(userByNamePageDTO);
+        return ResultUtils.success(userPage);
+    }
+
+    /**
+     * 推荐用户
+     * @param pageDTO
+     * @return
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(PageDTO pageDTO) {
+        log.info("获取推荐用户");
+        //1.查缓存
+        // TODO 分页没考虑
+        String redisKey = String.format("symm:user:recommend:%s", BaseContext.getCurrentId());
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
+        if (userPage != null) {
+            return ResultUtils.success(userPage);
+        }
+        //2.无，则查数据库
+        userPage = userService.getRecommendUsers(pageDTO);
+
+        //3.写入缓存
+        // TODO 过期时间硬编码不太好
+        try {
+            valueOperations.set(redisKey,userPage,30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set error");
+        }
+        return ResultUtils.success(userPage);
     }
 
 }

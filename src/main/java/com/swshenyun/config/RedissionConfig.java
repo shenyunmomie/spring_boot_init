@@ -1,5 +1,6 @@
 package com.swshenyun.config;
 
+
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -21,10 +22,11 @@ public class RedissionConfig {
     public RedissonClient redissonClient() {
         // 1. Create config object
         Config config = new Config();
-        String redisAddress = String.format("redis://%s:%s", host, port);
-        config.useClusterServers().addNodeAddress(redisAddress);
+        String redisAddress = String.format("redis://localhost:6379");
+        config.useClusterServers()
+                .addNodeAddress(redisAddress)
+                .setPassword("root");
         // 2. Create Redisson instance
-        // Sync and Async API
         return Redisson.create(config);
     }
 }

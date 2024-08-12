@@ -27,4 +27,6 @@ public interface UserService extends IService<User> {
     Page<User> searchUsersByName(UserByNamePageDTO userByNamePageDTO);
 
     Page<User> getRecommendUsers(PageDTO pageDTO);
+
+    Boolean isAdmin(Long id);
 }

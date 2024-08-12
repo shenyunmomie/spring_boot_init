@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.swshenyun.common.ErrorCode;
 import com.swshenyun.constant.StatusConstant;
+import com.swshenyun.constant.UserRoleConstant;
 import com.swshenyun.exception.BaseException;
 import com.swshenyun.mapper.UserMapper;
 import com.swshenyun.pojo.dto.*;
@@ -32,11 +33,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 密码盐值
      */
     private static final String SALT = "symm";
-    private final UserMapper userMapper;
-
-    public UserServiceImpl(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
 
     /**
      * 用户登录
@@ -60,7 +56,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BaseException(ErrorCode.PASSWORD_ERROR);
         }
         //判断账户status
-        if (user.getStatus().equals(StatusConstant.DISABLE)) {
+        if (StatusConstant.DISABLE.equals(user.getStatus())) {
             throw new BaseException(ErrorCode.ACCOUNT_LOCKED);
         }
 
@@ -193,6 +189,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Page<User> getRecommendUsers(PageDTO pageDTO) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         return this.page(new Page<>(pageDTO.getPage(), pageDTO.getPageSize()), wrapper);
+    }
+
+    public Boolean isAdmin(Long id) {
+        User user = this.getById(id);
+        return user != null && UserRoleConstant.ADMIN_ROLE.equals(user.getRole());
     }
 }
 

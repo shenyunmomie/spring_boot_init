@@ -8,6 +8,7 @@ import javax.validation.constraints.Size;
 import java.io.Serializable;
 
 @Data
+@NotBlank
 public class UserLoginDTO implements Serializable {
 
     @NotBlank(message = "用户名不能为空")

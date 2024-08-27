@@ -29,4 +29,13 @@ public interface TeamService extends IService<Team> {
     Page<TeamQueryVO> pageTeams(TeamQueryDTO teamQueryDTO);
 
     List<TeamQueryVO> listTeams(TeamQueryDTO teamQueryDTO);
+
+    Boolean joinTeam(Long teamId, String password);
+
+    Boolean exitTeam(Long teamId);
+
+    Boolean changeLeader(Long currentId, Long newUserId, Long teamId);
+
+    Boolean kickOut(Long userId, Long teamId);
+
 }

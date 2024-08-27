@@ -3,6 +3,7 @@ package com.swshenyun.pojo.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -30,7 +31,7 @@ public class TeamDTO implements Serializable {
     /**
      * 过期时间
      */
-    private Date expireTime;
+    private LocalDateTime expireTime;
 
     /**
      * 0 - 公开，1 - 私有，2 - 加密

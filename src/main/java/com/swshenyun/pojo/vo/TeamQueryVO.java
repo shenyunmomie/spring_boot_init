@@ -60,7 +60,7 @@ public class TeamQueryVO implements Serializable {
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private LocalDateTime updateTime;
 
     /**
      * 创建人用户信息

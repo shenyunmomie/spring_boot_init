@@ -39,10 +39,8 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             //当前拦截到的不是动态方法，直接放行
             return true;
         }
-
         //1、从请求头中获取令牌
         String token = request.getHeader(jwtProperties.getUserTokenName());
-
         //2、校验令牌
         try {
             log.info("jwt校验:{}", token);
@@ -53,7 +51,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             //3、通过，放行
             return true;
         } catch (Exception e) {
-            //4、不通过，响应401状态码
+            //4、不通过，响应 401状态码
             response.setStatus(401);
             return false;
         }

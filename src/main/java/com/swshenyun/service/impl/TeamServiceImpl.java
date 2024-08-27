@@ -55,21 +55,21 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     public Long addTeam(TeamCreateDTO teamCreateDTO) {
         //1.插入team表
         Team team = new Team();
-        BeanUtils.copyProperties(teamCreateDTO, team);
+
         // 校验
         // 队伍最大人数：大于1，小于等于20
-        int maxNum = Optional.ofNullable(team.getMaxNum()).orElse(0);
+        int maxNum = Optional.ofNullable(teamCreateDTO.getMaxNum()).orElse(0);
         if (maxNum < 1 || maxNum > 20) {
             throw new BaseException(ErrorCode.PARAMS_ERROR);
         }
         // 超时时间 > 当前时间
-        LocalDateTime expireTime = team.getExpireTime();
-        if (LocalDateTimeUtil.now().isAfter(expireTime)) {
+        LocalDateTime expireTime = teamCreateDTO.getExpireTime();
+        if (expireTime != null && LocalDateTimeUtil.now().isAfter(expireTime)) {
             throw new BaseException(ErrorCode.PARAMS_ERROR);
         }
         // 状态校验 0 - 公开，1 - 私有，2 - 加密
-        Integer status = team.getStatus();
-        String password = team.getPassword();
+        Integer status = teamCreateDTO.getStatus();
+        String password = teamCreateDTO.getPassword();
         if (status.equals(TeamStatus.SECRET.getValue()) && password.isBlank()) {
             throw new BaseException(ErrorCode.PARAMS_ERROR);
         }
@@ -82,6 +82,9 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BaseException(ErrorCode.ALREADY_LIMITED);
         }
 
+        BeanUtils.copyProperties(teamCreateDTO, team);
+        team.setUserId(currentId);
+
         boolean result = this.save(team);
         if (!result) {
             throw new BaseException(ErrorCode.OPERATION_ERROR);
@@ -91,7 +94,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         UserTeam userTeam = new UserTeam();
         userTeam.setUserId(currentId);
         userTeam.setTeamId(team.getId());
-        userTeam.setJoinTime(new Date());
+        userTeam.setJoinTime(LocalDateTimeUtil.now());
         result = userTeamService.save(userTeam);
         if (!result) {
             throw new BaseException(ErrorCode.OPERATION_ERROR);
@@ -148,8 +151,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     public Page<TeamQueryVO> pageTeams(TeamQueryDTO teamQueryDTO) {
         Long currentId = BaseContext.getCurrentId();
         LambdaQueryWrapper<Team> wrapper = new LambdaQueryWrapper<>();
-        // 管理员鉴权
-        Boolean isAdmin = userService.isAdmin(currentId);
+
         //id列表查询
         List<Long> ids = teamQueryDTO.getIds();
         // TODO 不允许1000个查询 or 分批查询
@@ -194,9 +196,12 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         TeamStatus statusEnum;
         if (status == null) {
             statusEnum = TeamStatus.PUBLIC;
+            status = TeamStatus.PUBLIC.getValue();
         } else {
             statusEnum = TeamStatus.getEnumByValue(status);
         }
+        // 管理员鉴权
+        Boolean isAdmin = userService.isAdmin(currentId);
         if (!Boolean.TRUE.equals(isAdmin) && statusEnum.equals(TeamStatus.PRIVATE)) {
             throw new BaseException(ErrorCode.NO_AUTH_ERROR);
         }
@@ -255,7 +260,128 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         return this.pageTeams(teamQueryDTO).getRecords();
     }
 
+    public Boolean joinTeam(Long teamId, String password) {
+        if (teamId == null) {
+            throw new BaseException(ErrorCode.PARAMS_ERROR);
+        }
+        //1. 校验队伍是否存在
+        Team team = this.getById(teamId);
+        if (team == null) {
+            throw new BaseException(ErrorCode.TEAM_NOT_EXISTS_ERROR);
+        }
+        //2. 校验队伍人数是否上限
+        LambdaQueryWrapper<UserTeam> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeam::getTeamId, teamId);
+        long count = userTeamService.count(wrapper);
+        if (count < 0 || count > team.getMaxNum()) {
+            throw new BaseException(ErrorCode.TEAM_MAX_NUM_ERROR);
+        }
+        //3. 校验是否已经加入
+        Long currentId = BaseContext.getCurrentId();
+        wrapper.eq(UserTeam::getUserId, currentId);
+        boolean exists = userTeamService.exists(wrapper);
+        if (exists) {
+            throw new BaseException(ErrorCode.USERTEAM_ALREADY_EXISTS);
+        }
+        //4. 如果是公开-直接加入，私有-不允许加入，加密-确认密码
+        Integer status = team.getStatus();
+        TeamStatus teamStatus = TeamStatus.getEnumByValue(status);
+        if (TeamStatus.PRIVATE.equals(teamStatus)) {
+            throw new BaseException(ErrorCode.NO_AUTH_ERROR);
+        }
+        String pwd = team.getPassword();
+        if (TeamStatus.SECRET.equals(teamStatus) && !pwd.equals(password)) {
+            throw new BaseException(ErrorCode.PASSWORD_ERROR);
+        }
+        UserTeam userTeam = new UserTeam();
+        userTeam.setUserId(currentId);
+        userTeam.setTeamId(teamId);
+        userTeam.setJoinTime(LocalDateTimeUtil.now());
+        return userTeamService.save(userTeam);
+    }
 
+    public Boolean exitTeam(Long teamId) {
+        if (teamId == null) {
+            throw new BaseException(ErrorCode.PARAMS_ERROR);
+        }
+        Long currentId = BaseContext.getCurrentId();
+        //1. 校验是否在队伍中
+        LambdaQueryWrapper<UserTeam> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeam::getUserId, currentId);
+        boolean exists = userTeamService.exists(wrapper);
+        if (!exists) {
+            throw new BaseException(ErrorCode.USERTEAM_NOT_EXISTS);
+        }
+        //2. 是否为队长，如果为队长，需先更换队长，再退出
+        Team team = this.getById(teamId);
+        Long leaderUserId = team.getUserId();
+        if (currentId.equals(leaderUserId)) {
+            //更换队长
+            LambdaQueryWrapper<UserTeam> newLeaderWrapper = new LambdaQueryWrapper<>();
+            newLeaderWrapper.eq(UserTeam::getTeamId, teamId);
+            newLeaderWrapper.ne(UserTeam::getUserId, leaderUserId);
+            newLeaderWrapper.orderByAsc(UserTeam::getJoinTime);
+            newLeaderWrapper.last("limit 1");
+            UserTeam userTeam = userTeamService.getOne(newLeaderWrapper);
+            Long newLeaderUserId = userTeam.getUserId();
+            Boolean changeResult = this.changeLeader(leaderUserId, newLeaderUserId, teamId);
+            if (!changeResult) {
+                throw new BaseException(ErrorCode.OPERATION_ERROR);
+            }
+        }
+        //退出
+        wrapper.eq(UserTeam::getTeamId, teamId);
+        return userTeamService.remove(wrapper);
+    }
+
+    public Boolean changeLeader(Long userId, Long newUserId, Long teamId) {
+        if (userId == null || newUserId == null || teamId == null) {
+            throw new BaseException(ErrorCode.PARAMS_ERROR);
+        }
+        //1. 鉴权，必须为队长或管理员
+        Team team = this.getById(teamId);
+        Long leaderUserId = team.getUserId();
+        if (!userId.equals(leaderUserId)) {
+            throw new BaseException(ErrorCode.NO_AUTH_ERROR);
+        }
+        //2. 新队长必须为小队其他成员
+        LambdaQueryWrapper<UserTeam> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeam::getTeamId, teamId);
+        wrapper.eq(UserTeam::getUserId, newUserId);
+        boolean exists = userTeamService.exists(wrapper);
+        if (!exists) {
+            throw new BaseException(ErrorCode.USER_NOT_IN_TEAM_ERROR);
+        }
+        //更换队长
+        team.setUserId(newUserId);
+        return this.updateById(team);
+    }
+
+    public Boolean kickOut(Long userId, Long teamId) {
+        if (userId == null || teamId == null) {
+            throw new BaseException(ErrorCode.PARAMS_ERROR);
+        }
+        Team team = this.getById(teamId);
+        //1. 鉴权，必须为队长或管理员才能踢人
+        Long currentId = BaseContext.getCurrentId();
+        if (!currentId.equals(team.getUserId()) && Boolean.FALSE.equals(userService.isAdmin(currentId))) {
+            throw new BaseException(ErrorCode.NO_AUTH_ERROR);
+        }
+        //2. userId不能是队长，也就是不能是自己
+        if (userId.equals(team.getUserId()) || userId.equals(currentId)) {
+            throw new BaseException(ErrorCode.CANNOT_KICK_OUT_ERROR);
+        }
+        //3. 确定成员userId存在
+        LambdaQueryWrapper<UserTeam> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeam::getTeamId, teamId);
+        wrapper.eq(UserTeam::getUserId, userId);
+        boolean exists = userTeamService.exists(wrapper);
+        if (!exists) {
+            throw new BaseException(ErrorCode.USER_NOT_IN_TEAM_ERROR);
+        }
+        //4. 踢人
+        return userTeamService.removeById(wrapper);
+    }
 }
 
 

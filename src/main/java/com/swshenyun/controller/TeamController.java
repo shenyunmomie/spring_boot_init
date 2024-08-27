@@ -2,6 +2,7 @@ package com.swshenyun.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.swshenyun.common.BaseResponse;
+import com.swshenyun.context.BaseContext;
 import com.swshenyun.pojo.dto.TeamCreateDTO;
 import com.swshenyun.pojo.dto.TeamDTO;
 import com.swshenyun.pojo.dto.TeamQueryDTO;
@@ -10,6 +11,7 @@ import com.swshenyun.pojo.vo.TeamQueryVO;
 import com.swshenyun.service.TeamService;
 import com.swshenyun.utils.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.el.parser.BooleanNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,5 +66,33 @@ public class TeamController {
         log.info("分页查询队伍信息：{}",teamQueryDTO.toString());
         Page<TeamQueryVO> teamList = teamService.pageTeams(teamQueryDTO);
         return ResultUtils.success(teamList);
+    }
+
+    @PostMapping("/join")
+    public BaseResponse<Boolean> join(Long teamId, String password) {
+        log.info("加入队伍：{}", teamId);
+        Boolean result = teamService.joinTeam(teamId,password);
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/exit")
+    public BaseResponse<Boolean> exit(Long teamId) {
+        log.info("退出队伍: {}", teamId);
+        Boolean result = teamService.exitTeam(teamId);
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/change")
+    public BaseResponse<Boolean> changeLeader(Long newUserId, Long teamId) {
+        log.info("更换新队长：{}", newUserId);
+        Long currentId = BaseContext.getCurrentId();
+        Boolean result = teamService.changeLeader(currentId, newUserId, teamId);
+        return ResultUtils.success(result);
+    }
+
+    public BaseResponse<Boolean> kickOut(Long teamId, Long userId) {
+        log.info("{}用户踢出队伍{}",userId, teamId);
+        Boolean result = teamService.kickOut(userId, teamId);
+        return ResultUtils.success(result);
     }
 }

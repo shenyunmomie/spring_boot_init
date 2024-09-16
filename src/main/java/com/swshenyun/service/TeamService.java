@@ -6,7 +6,8 @@ import com.swshenyun.pojo.dto.TeamCreateDTO;
 import com.swshenyun.pojo.dto.TeamDTO;
 import com.swshenyun.pojo.dto.TeamQueryDTO;
 import com.swshenyun.pojo.entity.Team;
-import com.swshenyun.pojo.vo.TeamQueryVO;
+import com.swshenyun.pojo.vo.TeamVO;
+import com.swshenyun.pojo.vo.UserVO;
 
 import java.util.List;
 
@@ -26,9 +27,9 @@ public interface TeamService extends IService<Team> {
 
     Team getSafeTeam(Team team);
 
-    Page<TeamQueryVO> pageTeams(TeamQueryDTO teamQueryDTO);
+    Page<TeamVO> pageTeams(TeamQueryDTO teamQueryDTO);
 
-    List<TeamQueryVO> listTeams(TeamQueryDTO teamQueryDTO);
+    List<TeamVO> listTeams(TeamQueryDTO teamQueryDTO);
 
     Boolean joinTeam(Long teamId, String password);
 

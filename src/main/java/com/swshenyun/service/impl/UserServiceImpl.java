@@ -1,22 +1,33 @@
 package com.swshenyun.service.impl;
 
+import cn.hutool.core.lang.Pair;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.swshenyun.common.ErrorCode;
 import com.swshenyun.constant.StatusConstant;
 import com.swshenyun.constant.UserRoleConstant;
+import com.swshenyun.context.BaseContext;
 import com.swshenyun.exception.BaseException;
 import com.swshenyun.mapper.UserMapper;
 import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
+import com.swshenyun.pojo.vo.UserVO;
 import com.swshenyun.service.UserService;
+import com.swshenyun.utils.AlgorithmUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +44,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 密码盐值
      */
     private static final String SALT = "symm";
+
+    @Autowired
+    private UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+    }
 
     /**
      * 用户登录
@@ -194,6 +211,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Boolean isAdmin(Long id) {
         User user = this.getById(id);
         return user != null && UserRoleConstant.ADMIN_ROLE.equals(user.getRole());
+    }
+
+    public List<UserVO> matchUser(long num) {
+
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(User::getId, User::getTags);
+        wrapper.isNotNull(User::getTags);
+        List<User> userList = this.list(wrapper);
+
+        Long loginUserId = BaseContext.getCurrentId();
+        User loginUser = this.getById(loginUserId);
+        String tags = loginUser.getTags();
+        Gson gson = new Gson();
+        List<String> loginTagList = gson.fromJson(tags, new TypeToken<List<String>>() {}.getType());
+
+        List<Pair<User, Long>> list = new ArrayList<>();
+
+        // 依次计算所有用户和当前用户的相似度
+        for (int i = 0; i < userList.size(); i++) {
+            User user = userList.get(i);
+            String userTags = user.getTags();
+            // 无标签或者为当前用户自己
+            if (StringUtils.isBlank(userTags) || Objects.equals(user.getId(), loginUser.getId())) {
+                continue;
+            }
+            List<String> userTagList = gson.fromJson(userTags, new TypeToken<List<String>>() {}.getType());
+            // 计算分数
+            long distance = AlgorithmUtils.minDistance(loginTagList, userTagList);
+            list.add(new Pair<>(user, distance));
+        }
+
+        // 按编辑距离由小到大排序
+        List<Pair<User, Long>> topUserPairList = list.stream()
+                .sorted((a, b) -> (int) (a.getValue() - b.getValue()))
+                .limit(num)
+                .toList();
+        // 原本顺序的 userId 列表
+        List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).toList();
+        List<User> finalUserList = userMapper.orderedQueruByIds(userIdList);
+
+        List<UserVO> result = new ArrayList<>();
+        for (User user : finalUserList) {
+            UserVO userVO = new UserVO();
+            BeanUtils.copyProperties(user, userVO);
+            result.add(userVO);
+        }
+        return result;
     }
 }
 

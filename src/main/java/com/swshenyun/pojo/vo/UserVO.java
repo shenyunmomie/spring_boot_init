@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserQueryVO implements Serializable {
+public class UserVO implements Serializable {
 
     /**
      * 主键

@@ -20,8 +20,8 @@ import com.swshenyun.pojo.dto.TeamQueryDTO;
 import com.swshenyun.pojo.entity.Team;
 import com.swshenyun.pojo.entity.User;
 import com.swshenyun.pojo.entity.UserTeam;
-import com.swshenyun.pojo.vo.TeamQueryVO;
-import com.swshenyun.pojo.vo.UserQueryVO;
+import com.swshenyun.pojo.vo.TeamVO;
+import com.swshenyun.pojo.vo.UserVO;
 import com.swshenyun.service.TeamService;
 import com.swshenyun.service.UserService;
 import com.swshenyun.service.UserTeamService;
@@ -148,7 +148,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         return safeTeam;
     }
 
-    public Page<TeamQueryVO> pageTeams(TeamQueryDTO teamQueryDTO) {
+    public Page<TeamVO> pageTeams(TeamQueryDTO teamQueryDTO) {
         Long currentId = BaseContext.getCurrentId();
         LambdaQueryWrapper<Team> wrapper = new LambdaQueryWrapper<>();
 
@@ -215,7 +215,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         Page<Team> page = new Page<>(teamQueryDTO.getPage(), teamQueryDTO.getPageSize());
         Page<Team> teamPage = this.page(page, wrapper);
         List<Team> teamList = teamPage.getRecords();
-        Page<TeamQueryVO> teamQueryPage = new Page<>();
+        Page<TeamVO> teamQueryPage = new Page<>();
         BeanUtils.copyProperties(teamPage, teamQueryPage);
 
         if (CollectionUtils.isEmpty(teamList)) {
@@ -223,37 +223,37 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             return teamQueryPage;
         }
 
-        List<TeamQueryVO> teamQueryVOList = new ArrayList<>();
+        List<TeamVO> teamVOList = new ArrayList<>();
         for (Team team : teamList) {
             Long createUserId = team.getUserId();
             if (createUserId == null) {
                 continue;
             }
-            TeamQueryVO teamQueryVO = new TeamQueryVO();
-            BeanUtils.copyProperties(team, teamQueryVO);
+            TeamVO teamVO = new TeamVO();
+            BeanUtils.copyProperties(team, teamVO);
 
             User user = userService.getById(createUserId);
             if (user != null) {
-                UserQueryVO userQueryVO = new UserQueryVO();
-                BeanUtils.copyProperties(user,userQueryVO);
-                teamQueryVO.setCreateUser(userQueryVO);
+                UserVO userVO = new UserVO();
+                BeanUtils.copyProperties(user, userVO);
+                teamVO.setCreateUser(userVO);
             }
             LambdaQueryWrapper<UserTeam> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(UserTeam::getTeamId, team.getId());
             long count = userTeamService.count(queryWrapper);
-            teamQueryVO.setHasJoinNum((int) count);
+            teamVO.setHasJoinNum((int) count);
 
             queryWrapper.eq(UserTeam::getUserId, team.getUserId());
             boolean exists = userTeamService.exists(queryWrapper);
-            teamQueryVO.setHasJoin(exists);
+            teamVO.setHasJoin(exists);
 
-            teamQueryVOList.add(teamQueryVO);
+            teamVOList.add(teamVO);
         }
-        teamQueryPage.setRecords(teamQueryVOList);
+        teamQueryPage.setRecords(teamVOList);
         return teamQueryPage;
     }
 
-    public List<TeamQueryVO> listTeams(TeamQueryDTO teamQueryDTO) {
+    public List<TeamVO> listTeams(TeamQueryDTO teamQueryDTO) {
         // 分页最大数，最大数为int最大值
         teamQueryDTO.setPage(PageConstant.FIRST_PAGE);
         teamQueryDTO.setPageSize(PageConstant.MAX_PAGE_SIZE);
@@ -382,6 +382,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         //4. 踢人
         return userTeamService.removeById(wrapper);
     }
+
 }
 
 

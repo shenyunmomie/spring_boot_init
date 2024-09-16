@@ -31,4 +31,16 @@
         update_time,is_delete,tags,
         role
     </sql>
+
+    <select id="orderedQueruByIds" resultType="com.swshenyun.pojo.entity.User">
+        select * from user
+        where id in
+        <foreach collection="userIdList" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        ORDER BY FIELD(id,
+        <foreach collection="userIdList" item="id" separator=",">
+            #{id}
+        </foreach>)
+    </select>
 </mapper>

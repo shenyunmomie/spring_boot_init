@@ -1,7 +1,5 @@
 package com.swshenyun.pojo.vo;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,13 +7,12 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeamQueryVO implements Serializable {
+public class TeamVO implements Serializable {
 
     /**
      * id
@@ -65,7 +62,7 @@ public class TeamQueryVO implements Serializable {
     /**
      * 创建人用户信息
      */
-    private UserQueryVO createUser;
+    private UserVO createUser;
 
     /**
      * 已加入的用户数

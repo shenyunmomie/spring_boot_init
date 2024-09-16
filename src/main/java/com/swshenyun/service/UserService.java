@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
+import com.swshenyun.pojo.vo.UserVO;
 
 import java.util.List;
 
@@ -29,4 +30,6 @@ public interface UserService extends IService<User> {
     Page<User> getRecommendUsers(PageDTO pageDTO);
 
     Boolean isAdmin(Long id);
+
+    List<UserVO> matchUser(long num);
 }

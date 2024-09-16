@@ -9,6 +9,7 @@ import com.swshenyun.exception.BaseException;
 import com.swshenyun.pojo.dto.*;
 import com.swshenyun.pojo.entity.User;
 import com.swshenyun.pojo.vo.UserLoginVO;
+import com.swshenyun.pojo.vo.UserVO;
 import com.swshenyun.properties.JwtProperties;
 import com.swshenyun.service.UserService;
 import com.swshenyun.utils.JwtUtils;
@@ -25,6 +26,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -193,4 +195,15 @@ public class UserController {
         return ResultUtils.success(userPage);
     }
 
+    /**
+     * 获取最匹配的用户
+     *
+     * @return
+     */
+    @GetMapping("/match")
+    public BaseResponse<List<UserVO>> matchUser(long num) {
+        log.info("队伍算法推荐");
+        List<UserVO> result = userService.matchUser(num);
+        return ResultUtils.success(result);
+    }
 }

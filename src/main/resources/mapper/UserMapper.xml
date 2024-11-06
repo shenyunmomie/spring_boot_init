@@ -19,8 +19,6 @@
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
-            <result property="tags" column="tags" jdbcType="VARCHAR"/>
-            <result property="role" column="role" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -28,19 +26,6 @@
         union_id,open_id,phone,
         email,sex,avatar,
         profile,status,create_time,
-        update_time,is_delete,tags,
-        role
+        update_time,is_delete
     </sql>
-
-    <select id="orderedQueruByIds" resultType="com.swshenyun.pojo.entity.User">
-        select * from user
-        where id in
-        <foreach collection="userIdList" item="id" open="(" close=")" separator=",">
-            #{id}
-        </foreach>
-        ORDER BY FIELD(id,
-        <foreach collection="userIdList" item="id" separator=",">
-            #{id}
-        </foreach>)
-    </select>
 </mapper>

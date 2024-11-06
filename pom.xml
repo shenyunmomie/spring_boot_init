@@ -20,9 +20,10 @@
 		<mybatis.spring>2.2.2</mybatis.spring>
 		<fastjson>1.2.76</fastjson>
 		<commons.lang>2.6</commons.lang>
+		<druid>1.2.1</druid>
 		<pagehelper>1.3.0</pagehelper>
 		<aliyun.sdk.oss>3.10.2</aliyun.sdk.oss>
-		<knife4j>4.5.0</knife4j>
+		<knife4j>3.0.3</knife4j>
 		<aspectj>1.9.4</aspectj>
 		<jjwt>0.9.1</jjwt>
 		<jaxb-api>2.3.1</jaxb-api>
@@ -75,13 +76,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
-		<!-- redission -->
-		<dependency>
-			<groupId>org.redisson</groupId>
-			<artifactId>redisson-spring-boot-starter</artifactId>
-			<version>3.34.1</version>
-		</dependency>
-
 		<!--阿里云oss-->
 		<dependency>
 			<groupId>com.aliyun.oss</groupId>
@@ -90,10 +84,9 @@
 		</dependency>
 
 		<!--接口文档swagger-->
-		<!-- 最新版本，之前的不适合springboot3 -->
 		<dependency>
 			<groupId>com.github.xiaoymin</groupId>
-			<artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+			<artifactId>knife4j-spring-boot-starter</artifactId>
 			<version>${knife4j}</version>
 		</dependency>
 
@@ -133,9 +126,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
-
 
 </project>

@@ -1,10 +1,7 @@
 package com.swshenyun.pojo.dto;
 
 import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
 
-
-@Data
 public class UserDTO {
     /**
      * 主键
@@ -36,11 +33,6 @@ public class UserDTO {
      * 用户简介
      */
     private String profile;
-
-    /**
-     * 用户标签
-     */
-    private String tags;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

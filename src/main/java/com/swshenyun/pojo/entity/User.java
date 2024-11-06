@@ -77,11 +77,6 @@ public class User implements Serializable {
     private Integer status;
 
     /**
-     * 用户角色 0 - 普通用户 1 - 管理员
-     */
-    private Integer role;
-
-    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)
@@ -101,9 +96,4 @@ public class User implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
-
-    /**
-     * 标签
-     */
-    private String tags;
 }

@@ -13,7 +13,7 @@ public class ResultUtils {
      * @return
      */
     public static BaseResponse success(){
-        return new BaseResponse(1, "");
+        return new BaseResponse(200, "");
     }
 
     /**
@@ -22,7 +22,7 @@ public class ResultUtils {
      * @return
      */
     public static <T> BaseResponse<T> success(T data){
-        return new BaseResponse<T>(1, data);
+        return new BaseResponse<T>(200, data);
     }
 
     /**
